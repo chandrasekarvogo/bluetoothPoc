@@ -1,12 +1,21 @@
 package in.vogo.iot.vogobluetooth.vo;
 
 public class AppStatus {
+    String device;
     String bluetoothConnection;
-    String SMSStatus;
+    String smsStatus;
     String unlockStartTime;
     String unlockLocation;
     String btPairSuccessTime;
     String smsReceivedTime;
+
+    public String getDevice() {
+        return device;
+    }
+
+    public void setDevice(String device) {
+        this.device = device;
+    }
 
     public String getBluetoothConnection() {
         return bluetoothConnection;
@@ -16,12 +25,12 @@ public class AppStatus {
         this.bluetoothConnection = bluetoothConnection;
     }
 
-    public String getSMSStatus() {
-        return SMSStatus;
+    public String getSmsStatus() {
+        return smsStatus;
     }
 
-    public void setSMSStatus(String SMSStatus) {
-        this.SMSStatus = SMSStatus;
+    public void setSmsStatus(String smsStatus) {
+        this.smsStatus = smsStatus;
     }
 
     public String getUnlockStartTime() {
@@ -60,7 +69,7 @@ public class AppStatus {
     public String toString() {
         return "AppStatus{" +
                 "bluetoothConnection='" + bluetoothConnection + '\'' +
-                ", SMSStatus='" + SMSStatus + '\'' +
+                ", SMSStatus='" + smsStatus + '\'' +
                 ", unlockStartTime='" + unlockStartTime + '\'' +
                 ", unlockLocation='" + unlockLocation + '\'' +
                 ", btPairSuccessTime='" + btPairSuccessTime + '\'' +

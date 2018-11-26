@@ -5,8 +5,6 @@ import android.app.Activity;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -19,65 +17,75 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.util.Date;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import in.vogo.iot.vogobluetooth.vo.AppStatus;
 
-import static android.R.attr.enabled;
 import static android.R.attr.name;
 
 
 public class MainActivity extends AppCompatActivity {
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS = 0;
+    private static final int MY_PERMISSIONS_REQUEST_READ_STATE = 1;
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-   // final String address = "BC:F5:AC:7B:65:0D";
-    final String address = "12:B9:2E:BB:62:61";
-    private final int REQUEST_FINE_LOCATION = 1234;
-    TextView smsStatus, BTStatus, BTTimeRemaining, locationtv;
-    Button unlockButton,sendButton;
-    Util util;
-    AppStatus appStatus;
-    String TAG = "VOGO_BLUETOOTH";
-    GPSTracker gpsTracker;
-    //String phoneNo = "+917022018457";
-
-    String phoneNo = "+918015339336";
-
-    String message = "test sms";
-    private LocationManager locationManager;
-    private Location onlyOneLocation;
-    private BluetoothAdapter mBTAdapter;
-    private Set<BluetoothDevice> mPairedDevices;
-
     private final static int REQUEST_ENABLE_BT = 1;
     private final static int MESSAGE_READ = 2;
     private final static int CONNECTING_STATUS = 3;
     private final static int UNPAIRED_DEVICE = 4;
+    // final String address = "BC:F5:AC:7B:65:0D";
+    final String address = "12:B9:2E:BB:62:61";
+    private final int REQUEST_FINE_LOCATION = 1234;
+    TextView smsStatus, BTStatus, BTTimeRemaining, locationtv;
+    Button unlockButton, sendButton;
+    String phoneNo = "+917022018457";
+    Util util;
+    AppStatus appStatus;
+    String TAG = "VOGO_BLUETOOTH";
+    GPSTracker gpsTracker;
+    //String phoneNo = "+918015339336";
+    String message = "test sms";
+    CountDownTimer retryTimer;
+    FirebaseDatabase firebaseDatabase;
+    DatabaseReference databaseReference;
+    private LocationManager locationManager;
+    private Location onlyOneLocation;
+    private BluetoothAdapter mBTAdapter;
+    private Set<BluetoothDevice> mPairedDevices;
     private Handler mHandler;
     private BluetoothSocket mBTSocket = null;
     private int btOtp = 1233;
     private int retryLimit = 10;
-    private int count  = 0;
+    private int count = 0;
     private boolean isConnected = false;
     private boolean retriable = true;
-    CountDownTimer retryTimer;
+
+    int PERMISSION_ALL = 1;
+    String[] PERMISSIONS = {
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.SEND_SMS,
+            android.Manifest.permission.READ_PHONE_STATE,
+            android.Manifest.permission.BLUETOOTH,
+            android.Manifest.permission.INTERNET
+    };
     final BroadcastReceiver mPairingRequestReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             boolean isPinAccepted = false;
@@ -87,17 +95,17 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     Log.d("BT", "HAI");
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    Log.d("BT",device.getName());
+                    Log.d("BT", device.getName());
                     Log.d("BT", device.getAddress());
-                    if(device.getBondState() == BluetoothDevice.BOND_BONDED){
-                        Log.d("BT" ,"Device is already paired");
+                    if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
+                        Log.d("BT", "Device is already paired");
                     }
 
                     int pin = intent.getIntExtra("android.bluetooth.device.extra.PAIRING_KEY", 1233);
 
                     byte[] pinBytes;
                     pinBytes = ("" + pin).getBytes("UTF-8");
-                    if(Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
                         device.setPin(pinBytes);
                         isPinAccepted = true;
 
@@ -116,9 +124,8 @@ public class MainActivity extends AppCompatActivity {
 
                             }
                         }
-                    }
-                    else{
-                        isPinAccepted =  pairDevice(device);
+                    } else {
+                        isPinAccepted = pairDevice(device);
                     }
                     if (isPinAccepted) {
                         Log.d("BT", "ACcepted PIN");
@@ -145,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
                                         Log.d("BT devices Details", String.valueOf(device.getBondState() == BluetoothDevice.BOND_BONDED));
                                         try {
                                             if (device.getAddress().equalsIgnoreCase(address)) {
-                                                Log.d("BT", "Unparing DEVICE "+device.getAddress());
+                                                Log.d("BT", "Unparing DEVICE " + device.getAddress());
 
                                                 Method m = device.getClass()
                                                         .getMethod("removeBond", (Class[]) null);
@@ -153,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
                                                 BTStatus.setText("Unpaired from device");
 
                                             }
-                                            Log.d("BT devices unpairing" , String.valueOf(mBTAdapter.getBondedDevices().size()));
+                                            Log.d("BT devices unpairing", String.valueOf(mBTAdapter.getBondedDevices().size()));
                                         } catch (Exception e) {
                                             Log.e(TAG, "Unparing Failed");
                                         }
@@ -184,11 +191,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        appStatus = new AppStatus();
+
         gpsTracker = new GPSTracker(this);
         util = new Util();
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_FINE_LOCATION);
+//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_FINE_LOCATION);
+//        }
+
+        if(!hasPermissions(this, PERMISSIONS)){
+            ActivityCompat.requestPermissions(this, PERMISSIONS, PERMISSION_ALL);
         }
 
         unlockButton = (Button) findViewById(R.id.btn_unlock);
@@ -199,28 +210,28 @@ public class MainActivity extends AppCompatActivity {
         locationtv = (TextView) findViewById(R.id.tv_location_value);
 
         mBTAdapter = BluetoothAdapter.getDefaultAdapter();
+        firebaseDatabase = FirebaseDatabase.getInstance();
+        databaseReference = firebaseDatabase.getReference("appdata");
         if (!mBTAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
-        mHandler = new Handler(){
-            public void handleMessage(android.os.Message msg){
+        mHandler = new Handler() {
+            public void handleMessage(android.os.Message msg) {
 
-                if(msg.what == CONNECTING_STATUS){
+                if (msg.what == CONNECTING_STATUS) {
 
-                    if(msg.arg1 == 1) {
+                    if (msg.arg1 == 1) {
                         BTStatus.setText("Connected to Device");
                         appStatus.setBluetoothConnection("Connected");
                         isConnected = true;
-                    }
-                    else if(msg.arg1 == 2) {
+                    } else if (msg.arg1 == 2) {
                         BTStatus.setText("Already Connected to Device");
                         appStatus.setBluetoothConnection("already connected");
                         isConnected = true;
                         unlockButton.setEnabled(true);
-                    }
-                    else {
-                        if(!isConnected) {
+                    } else {
+                        if (!isConnected) {
                             BTStatus.setText("Failed to connect Device");
                             appStatus.setBluetoothConnection("failed to connect");
                             util.showToast(getApplicationContext(), "Failed to Connect");
@@ -237,12 +248,11 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 }
-                if(msg.what == UNPAIRED_DEVICE){
-                    if(msg.arg1 == 1) {
+                if (msg.what == UNPAIRED_DEVICE) {
+                    if (msg.arg1 == 1) {
                         BTStatus.setText("Device Unpaired: " + (String) (msg.obj));
                         unlockButton.setEnabled(true);
-                    }
-                    else {
+                    } else {
                         BTStatus.setText("unpair Failed");
                         unlockButton.setEnabled(true);
                     }
@@ -252,6 +262,7 @@ public class MainActivity extends AppCompatActivity {
         unlockButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                appStatus = new AppStatus();
                 if (gpsTracker.getIsGPSTrackingEnabled()) {
                     isConnected = false;
                     retriable = true;
@@ -264,22 +275,22 @@ public class MainActivity extends AppCompatActivity {
                     util.showToast(getBaseContext(), "Unlocking device");
                     Date date = new Date();
                     appStatus.setUnlockStartTime(date.toString());
-                    //sendSMSMessage();
+                    sendSMSMessage();
                     connectToDevice();
-                    retryTimer =  new CountDownTimer(1000*60*2, 1000){
+                    retryTimer = new CountDownTimer(1000 * 60 * 2, 1000) {
 
                         @Override
                         public void onTick(long millisUntilFinished) {
                             Log.v("Retry:", String.valueOf(millisUntilFinished));
-                            if(millisUntilFinished % 5000 == 0) {
+                            if (millisUntilFinished % 5000 == 0) {
                                 util.showToast(getApplicationContext(), "Retrying to Connect");
                             }
                         }
 
                         @Override
                         public void onFinish() {
-                                retriable = false;
-                                unlockButton.setEnabled(true);
+                            retriable = false;
+                            unlockButton.setEnabled(true);
                         }
                     };
                     retryTimer.start();
@@ -298,42 +309,43 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
+
     @Override
-    protected void onPause(){
+    protected void onPause() {
         BTStatus.setText("na");
-        try{
+        try {
 
 
-            if(mPairingRequestReceiver != null){
+            if (mPairingRequestReceiver != null) {
                 unregisterReceiver(mPairingRequestReceiver);
             }
-            if(mBTAdapter.isDiscovering()){
+            if (mBTAdapter.isDiscovering()) {
                 mBTAdapter.cancelDiscovery();
                 BTStatus.setText("Discovery Stopped");
             }
-            if(mBTSocket!=null){
+            if (mBTSocket != null) {
                 mBTSocket.close();
             }
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         super.onPause();
     }
+
     @Override
     protected void onResume() {
         super.onResume();
         gpsTracker.getLocation();
     }
+
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent Data){
+    protected void onActivityResult(int requestCode, int resultCode, Intent Data) {
         if (requestCode == REQUEST_ENABLE_BT) {
             if (resultCode == RESULT_OK) {
-                util.showToast(getApplicationContext(),"Bluetooth turned on");
+                util.showToast(getApplicationContext(), "Bluetooth turned on");
                 BTStatus.setText("Enabled");
-            }
-            else
+            } else
                 BTStatus.setText("Disabled");
         }
     }
@@ -368,7 +380,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(),
                             "SMS faild, please try again.", Toast.LENGTH_LONG).show();
                     if (appStatus != null) {
-                        appStatus.setSMSStatus("Failed");
+                        appStatus.setSmsStatus("Failed");
                     }
                     return;
                 }
@@ -396,14 +408,14 @@ public class MainActivity extends AppCompatActivity {
                     case Activity.RESULT_OK:
                         Log.d("SMS", "SENT");
                         if (appStatus != null) {
-                            appStatus.setSMSStatus("SMS sent");
+                            appStatus.setSmsStatus("SMS sent");
                             smsStatus.setText("SMS sent");
                         }
                         break;
                     case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
                         Log.d("SMS", "Generic failure");
                         if (appStatus != null) {
-                            appStatus.setSMSStatus("Generic failure");
+                            appStatus.setSmsStatus("Generic failure");
                             smsStatus.setText("Generic failure");
                         }
                         break;
@@ -411,7 +423,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("SMS", "No service");
 
                         if (appStatus != null) {
-                            appStatus.setSMSStatus("No service");
+                            appStatus.setSmsStatus("No service");
                             smsStatus.setText("No service");
                         }
                         break;
@@ -419,7 +431,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("SMS", "Null PDU");
 
                         if (appStatus != null) {
-                            appStatus.setSMSStatus("Null PDU");
+                            appStatus.setSmsStatus("Null PDU");
                             smsStatus.setText("Null PDU");
                         }
                         break;
@@ -427,7 +439,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("SMS", "Radio off");
 
                         if (appStatus != null) {
-                            appStatus.setSMSStatus("Radio off");
+                            appStatus.setSmsStatus("Radio off");
                             smsStatus.setText("Radio off");
                         }
                         break;
@@ -444,11 +456,11 @@ public class MainActivity extends AppCompatActivity {
                     case Activity.RESULT_OK:
                         String receivedTime = new Date().toString();
                         appStatus.setSmsReceivedTime(receivedTime);
-                        Toast.makeText(getApplicationContext(), "SMS delivered on "+ receivedTime,
+                        Toast.makeText(getApplicationContext(), "SMS delivered on " + receivedTime,
                                 Toast.LENGTH_SHORT).show();
-                        Log.d("SMS", "SMS delivered on "+ receivedTime);
+                        Log.d("SMS", "SMS delivered on " + receivedTime);
                         if (appStatus != null) {
-                            appStatus.setSMSStatus("SMS delivered");
+                            appStatus.setSmsStatus("SMS delivered");
                         }
                         smsStatus.setText("SMS delivered");
                         break;
@@ -458,7 +470,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("SMS", "SMS not delivered");
 
                         if (appStatus != null) {
-                            appStatus.setSMSStatus("SMS not delivered");
+                            appStatus.setSmsStatus("SMS not delivered");
                         }
                         break;
                 }
@@ -479,10 +491,10 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 boolean fail = false;
                 BluetoothDevice device = mBTAdapter.getRemoteDevice(address);
-                boolean bonded  = device.getBondState() == BluetoothDevice.BOND_BONDED;
-                Log.d("BT",device.getName()+"is paired: " + String.valueOf(bonded));
+                boolean bonded = device.getBondState() == BluetoothDevice.BOND_BONDED;
+                Log.d("BT", device.getName() + "is paired: " + String.valueOf(bonded));
 
-                if(bonded){
+                if (bonded) {
                     mHandler.obtainMessage(CONNECTING_STATUS, 2, -1, name)
                             .sendToTarget();
 
@@ -490,12 +502,12 @@ public class MainActivity extends AppCompatActivity {
 
                 try {
                     mBTSocket = createBluetoothSocket(device);
-                    if(mBTSocket!=null){
-                        Log.d("BT", "SocketConnection Success "+ device.getName());
+                    if (mBTSocket != null) {
+                        Log.d("BT", "SocketConnection Success " + device.getName());
                     }
                 } catch (IOException e) {
                     fail = true;
-                    Log.d("BT", "SocketConnection Failed "+ device.getName());
+                    Log.d("BT", "SocketConnection Failed " + device.getName());
                 }
                 Log.d("BT", String.valueOf(mBTAdapter.isDiscovering()));
                 // Establish the Bluetooth socket connection.
@@ -512,7 +524,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(getBaseContext(), "Socket creation failed", Toast.LENGTH_SHORT).show();
                     }
                 }
-                if(fail == false) {
+                if (fail == false) {
                     mHandler.obtainMessage(CONNECTING_STATUS, 1, -1, name)
                             .sendToTarget();
                 }
@@ -552,8 +564,37 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    void sendData(){
+    void sendData() {
         Log.d("Collected Data", appStatus.toString());
+        String uniqueCode = Settings.Secure.getString(this.getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_PHONE_STATE)
+                != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.READ_PHONE_STATE)) {
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_PHONE_STATE},
+                        MY_PERMISSIONS_REQUEST_READ_STATE);
+            }
+        } else {
+            TelephonyManager telephonyManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
+            uniqueCode = telephonyManager.getDeviceId();
+        }
+        appStatus.setDevice(uniqueCode);
+        databaseReference.push().setValue(appStatus);  // pushes the data into firebase with random key
     }
 
+    public static boolean hasPermissions(Context context, String... permissions) {
+        if (context != null && permissions != null) {
+            for (String permission : permissions) {
+                if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 }
