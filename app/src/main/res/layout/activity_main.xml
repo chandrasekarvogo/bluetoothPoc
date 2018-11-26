@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/btn_unlock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="71dp"
+        android:text="Unlock" />
+
+    <TextView
+        android:id="@+id/bt_status_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+
+        android:layout_marginTop="195dp"
+
+        android:text="BT Status:" />
+
+    <TextView
+        android:id="@+id/bt_status_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="79dp"
+        android:layout_marginLeft="79dp"
+        android:layout_marginTop="195dp"
+        android:text="NA" />
+
+    <TextView
+        android:id="@+id/sms_status_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+
+        android:layout_marginTop="240dp"
+
+        android:text="SMS Status:" />
+
+    <TextView
+        android:id="@+id/sms_status_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/sms_status_label"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_marginStart="88dp"
+        android:layout_marginLeft="88dp"
+        android:layout_marginTop="1dp"
+        android:text="NA" />
+
+    <TextView
+        android:id="@+id/bt_connection_time_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:layout_alignParentTop="true"
+
+        android:layout_marginTop="154dp"
+        android:text="Remaining BT Connection Time:" />
+
+    <TextView
+        android:id="@+id/bt_connection_time_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+
+        android:layout_alignTop="@+id/bt_connection_time_label"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginEnd="128dp"
+        android:layout_marginRight="128dp"
+        android:text="10" />
+
+    <Button
+        android:id="@+id/btn_send_data"
+        android:layout_width="244dp"
+        android:layout_height="wrap_content"
+        android:layout_alignEnd="@+id/btn_unlock"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="-77dp"
+        android:layout_marginBottom="51dp"
+        android:text="Send Data" />
+
+    <TextView
+        android:id="@+id/tv_location_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="206dp"
+        android:text="Location: " />
+
+    <TextView
+        android:id="@+id/tv_location_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/bt_status_value"
+        android:layout_alignTop="@+id/tv_location_label"
+        android:text="NA" />
+</RelativeLayout>
