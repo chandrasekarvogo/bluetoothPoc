@@ -18,6 +18,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -29,11 +30,14 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
@@ -211,7 +215,9 @@ public class MainActivity extends AppCompatActivity {
 
         mBTAdapter = BluetoothAdapter.getDefaultAdapter();
         firebaseDatabase = FirebaseDatabase.getInstance();
+        firebaseDatabase.setPersistenceEnabled(true);
         databaseReference = firebaseDatabase.getReference("appdata");
+
         if (!mBTAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
@@ -584,7 +590,18 @@ public class MainActivity extends AppCompatActivity {
             uniqueCode = telephonyManager.getDeviceId();
         }
         appStatus.setDevice(uniqueCode);
-        databaseReference.push().setValue(appStatus);  // pushes the data into firebase with random key
+        databaseReference.push().setValue(appStatus).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                util.showToast(getApplicationContext(),"data stored in firebase");
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.e(TAG,e.getMessage());
+
+            }
+        });  // pushes the data into firebase with random key
     }
 
     public static boolean hasPermissions(Context context, String... permissions) {
@@ -597,4 +614,5 @@ public class MainActivity extends AppCompatActivity {
         }
         return true;
     }
+
 }
