@@ -277,7 +277,7 @@ public class MainActivity extends AppCompatActivity {
                     String unlockLocation = gpsTracker.getLatitude() + "," + gpsTracker.getLongitude();
                     Log.d(TAG, unlockLocation);
                     appStatus.setUnlockLocation(unlockLocation);
-                    locationtv.setText(unlockLocation);
+                    locationtv.setText("Found");
                     util.showToast(getBaseContext(), "Unlocking device");
                     Date date = new Date();
                     appStatus.setUnlockStartTime(date.toString());
@@ -458,6 +458,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onReceive(Context arg0, Intent arg1) {
                 unlockButton.setEnabled(true);
+
                 switch (getResultCode()) {
                     case Activity.RESULT_OK:
                         String receivedTime = new Date().toString();
